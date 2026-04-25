@@ -1,0 +1,34 @@
+name: Rust
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    # This part starts Postgres for you
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+    
+    env:
+      DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      
+      # The CI needs to migrate the database schema before testing
+      - name: Install sqlx-cli 
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run migrations
+        run: sqlx migrate run
+
+      - name: Run tests
+        run: cargo test
